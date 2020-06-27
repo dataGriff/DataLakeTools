@@ -1,0 +1,26 @@
+[
+  {
+    "Directory": "raw",
+    "metadata": {
+      "Description": "This is all the raw data",
+      "BusinessOwner": "All",
+      "Sensitive": "Y"
+    }
+  },
+  {
+    "Directory": "raw/yes",
+    "metadata": {
+      "Description": "This is all the raw yes data source data",
+      "BusinessOwner": "Yes Team",
+      "Sensitive": "Y"
+    }
+  },
+  {
+    "Directory": "raw/no",
+    "metadata": {
+      "Description": "This is all the raw no data source data",
+      "BusinessOwner": "No Team",
+      "Sensitive": "N"
+    }
+  }
+]
