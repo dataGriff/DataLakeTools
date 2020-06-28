@@ -452,40 +452,46 @@ An example
 
 .NOTES
 https://stackoverflow.com/questions/3740128/pscustomobject-to-hashtable
+https://omgdebugging.com/2019/02/25/convert-a-psobject-to-a-hashtable-in-powershell/
 #>
-function Convert-DataLakePSObjectToHashTable {
+function Convert-DataLakePSObjectToHashTable  { 
     param (
         [Parameter(ValueFromPipeline)]
         $InputObject
     )
 
-    Write-Verbose "***********************Start Convert-DataLakePSObjectToHashTable ******************************************"
+    Write-Verbose "***********************Start Convert-DataLakePSObjectToHashTable******************************************"
 
-    get-process {
+    Get-Process
+    {
         if ($null -eq $InputObject) { return $null }
 
-        if ($InputObject -is [System.Collections.IEnumerable] -and $InputObject -isnot [string]) {
+        if ($InputObject -is [System.Collections.IEnumerable] -and $InputObject -isnot [string])
+        {
             $collection = @(
-                foreach ($object in $InputObject) { ConvertPSObjectToHashtable $object }
+                foreach ($object in $InputObject) { Convert-DataLakePSObjectToHashTable $object }
             )
 
             Write-Output -NoEnumerate $collection
         }
-        elseif ($InputObject -is [psobject]) {
+        elseif ($InputObject -is [psobject])
+        {
             $hash = @{}
 
-            foreach ($property in $InputObject.PSObject.Properties) {
-                $hash[$property.Name] = ConvertPSObjectToHashtable $property.Value
+            foreach ($property in $InputObject.PSObject.Properties)
+            {
+                $hash[$property.Name] = Convert-DataLakePSObjectToHashTable $property.Value
             }
 
             $hash
         }
-        else {
+        else
+        {
             $InputObject
         }
     }
 
-    Write-Verbose "***********************End Convert-DataLakePSObjectToHashTable ******************************************"
+    Write-Verbose "***********************End Convert-DataLakePSObjectToHashTable******************************************"
 }
 #endregion Convert-DataLakePSObjectToHashTable
 
@@ -511,6 +517,9 @@ function Get-DataLakeADGroups {
         [string]$directory,
         [string]$description
     )
+
+    Write-Verbose "***********************Start Get-DataLakeADGroups******************************************"
+
     $dirad = $directory.Replace("/", "")
     $administrativeUnit = $environment + "DataLake"
 
@@ -538,7 +547,8 @@ function Get-DataLakeADGroups {
         $adgroups.Add($adgroup) | Out-Null
     }    
     return $adgroups
-
+    
+    Write-Verbose "***********************End Get-DataLakeADGroups******************************************"
 }
 Get-DataLakeADGroups -environment "Test" -directory "raw/yes" -description "la la."
 #endregion Get-DataLakeADGroups
@@ -578,22 +588,14 @@ function Set-DataLakeDirectoryAssignment {
         Write-Verbose "Start directory $directory"
         $metaobject = $d.metadata
         $metadata = @{}
-        $metadata = Convert-DataLakePSObjectToHashTable($metaobject)
+        $metadata = Convert-DataLakePSObjectToHashTable ($metaobject)
         Write-Verbose "With metadata $metadata"
 
-        Write-Verbose "Remove / in directory path to create AD group name"
-        $dirad = $directory.Replace("/", "")
-
         Write-Verbose "Loop and apply permissions for both rdr and wrt groups"
-        foreach ($p in @("rdr", "wrt")) {
-            $adgroupname = "datalake${dirad}$p"
-            Write-Verbose "Get permissions for AD group $adgroupname"
-            if ($p -eq "rdr") {
-                $permissions = "r-x"
-            }
-            if ($p -eq "wrt") {
-                $permissions = "-wx"
-            }
+        foreach ($adgroup in (Get-DataLakeADGroups -directory $directory)) {
+            $adgroupname = $adgroup.GroupName
+            $permissions = $adgroup.LakePermissions
+
             Write-Verbose "Permissions for AD group $adgroupname are $permissions"
 
             Set-DataLakeDirectory -susbcriptionName $susbcriptionName `
@@ -615,4 +617,5 @@ function Set-DataLakeDirectoryAssignment {
 
 }
 #endregion Set-DataLakeDirectoryAssignment
+
 
