@@ -1,5 +1,6 @@
 clear-host
 $VerbosePreference = "continue"
+##$ErrorActionPreference = "Stop"
 $susbcriptionName = "Visual Studio Enterprise" 
 $storageAccountName = "griffvnetlk2"
 $containerName = "mytestlake"

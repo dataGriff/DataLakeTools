@@ -127,9 +127,6 @@ function Set-DataLakeContainer {
 
     Write-Verbose "***********************End Set-DataLakeContainer******************************************"
 }
-Set-DataLakeContainer -susbcriptionName $susbcriptionName `
-    -StorageAccountName $storageAccountName `
-    -containerName $containerName
 #endregion Set-DataLakeContainer 
 
 #region Set-DataLakeContainerACL
@@ -177,11 +174,7 @@ function Set-DataLakeContainerACL {
         -StorageAccountName $storageAccountName
 
     Write-Verbose "Get object id of active directory group $adgroupname"
-    $id = (Get-AzADGroup -DisplayName $adgroupname).Id
-    if (!$id) {
-        throw "$adgroupname not found in active directory so cannot continue to create ACL on folder."
-        break
-    }
+    $id = (Get-DataLakeActiveDirectoryGroup -adgroupname $adgroupname)
     
     Write-Verbose "Create ACL Object"
     [Collections.Generic.List[System.Object]]$acl
@@ -241,6 +234,13 @@ function Set-DataLakeDirectory {
     )
 
     Write-Verbose "***********************Start Set-DataLakeDirectory******************************************"
+
+    Write-Verbose "Need to confirm read and write accounts exist for directory $dirname before continuing"
+    $adgroups = @(Get-DataLakeConfigADGroups -directory $dirname).GroupName
+    foreach($a in $adgroups)
+    {
+        Get-DataLakeActiveDirectoryGroup $a
+    }
 
     Connect-DataLakeSubscription -susbcriptionName $susbcriptionName
     $ctx = Connect-DataLakeStorageAccount -susbcriptionName $susbcriptionName `
@@ -374,11 +374,7 @@ function Set-DataLakeDirectoryACL {
         -StorageAccountName $storageAccountName
 
     Write-Verbose "Get object id of active directory group $adgroupname"
-    $id = (Get-AzADGroup -DisplayName $adgroupname).Id
-    if (!$id) {
-        throw "$adgroupname not found in active directory so cannot continue to create ACL on folder."
-        break
-    }
+    $id = (Get-DataLakeActiveDirectoryGroup -adgroupname $adgroupname)
 
     Write-Verbose "Create ACL Object"
     [Collections.Generic.List[System.Object]]$acl
@@ -484,7 +480,7 @@ function Convert-DataLakePSObjectToHashTable {
 }
 #endregion Convert-DataLakePSObjectToHashTable
 
-#region Get-DataLakeADGroups
+#region Get-DataLakeConfigADGroups
 <#
 .SYNOPSIS
 Short description
@@ -492,22 +488,29 @@ Short description
 .DESCRIPTION
 Long description
 
-.PARAMETER susbcriptionName
+.PARAMETER environment
+Parameter description
+
+.PARAMETER directory
+Parameter description
+
+.PARAMETER description
 Parameter description
 
 .EXAMPLE
 An example
 
 .NOTES
+General notes
 #>
-function Get-DataLakeADGroups {
+function Get-DataLakeConfigADGroups {
     param (
         [string]$environment,
         [string]$directory,
         [string]$description
     )
 
-    Write-Verbose "***********************Start Get-DataLakeADGroups******************************************"
+    Write-Verbose "***********************Start Get-DataLakeConfigADGroups******************************************"
 
     $dirad = $directory.Replace("/", "")
     $administrativeUnit = $environment + "DataLake"
@@ -517,7 +520,7 @@ function Get-DataLakeADGroups {
     foreach ($p in @("rdr", "wrt")) {
         $adgroup = New-Object -TypeName psobject 
         $adgroupname = "datalake${dirad}$p"
-        Write-Verbose "Get permissions for AD group $adgroupname"
+        Write-Verbose "Configure permissions for AD group object $adgroupname"
         if ($p -eq "rdr") {
             $permissions = "r-x"
             $descriptionAD = $description + " This account has read permissions."
@@ -537,10 +540,46 @@ function Get-DataLakeADGroups {
     }    
     return $adgroups
     
-    Write-Verbose "***********************End Get-DataLakeADGroups******************************************"
+    Write-Verbose "***********************End Get-DataLakeConfigADGroups******************************************"
 }
-Get-DataLakeADGroups -environment "Test" -directory "raw/yes" -description "la la."
-#endregion Get-DataLakeADGroups
+Get-DataLakeConfigADGroups -environment "Test" -directory "raw/yes" -description "la la."
+#endregion Get-DataLakeConfigADGroups
+
+#region Get-DataLakeActiveDirectoryGroup
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER adgroupname
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+General notes
+#>
+function Get-DataLakeActiveDirectoryGroup {
+    param (
+        [string]$adgroupname
+    )
+    Write-Verbose "***********************Start Get-DataLakeActiveDirectoryGroup******************************************"
+    Write-Verbose "Get object id of active directory group $adgroupname"
+    $id = (Get-AzADGroup -DisplayName $adgroupname).Id
+    if (!$id) {
+        throw "$adgroupname not found in active directory so cannot continue to create ACL."
+        break
+    }
+    else {
+        Write-Verbose "$adgroupname  found in active directory so continue."
+    }
+    return $id
+    Write-Verbose "***********************Start Get-DataLakeActiveDirectoryGroup******************************************"
+}
+#endregion Get-DataLakeActiveDirectoryGroup
 
 #region Set-DataLakeDirectoryAssignment
 <#
@@ -550,13 +589,23 @@ Short description
 .DESCRIPTION
 Long description
 
-.PARAMETER InputObject
+.PARAMETER susbcriptionName
+Parameter description
+
+.PARAMETER storageAccountName
+Parameter description
+
+.PARAMETER containerName
+Parameter description
+
+.PARAMETER path
 Parameter description
 
 .EXAMPLE
 An example
 
 .NOTES
+General notes
 #>
 function Set-DataLakeDirectoryAssignment {
     param (
@@ -565,14 +614,23 @@ function Set-DataLakeDirectoryAssignment {
         [string]$containerName,
         [string]$path
     )
+    $ErrorActionPreference = "Stop" ##leave this as calls so many nested things want to maintain this
 
     Write-Verbose "***********************Start Set-DataLakeDirectoryAssignment******************************************"
 
     Write-Verbose "Get configuration of directories from json configuration file $path"
-    $directories = (Get-Content -Raw -Path $path | ConvertFrom-Json)
+    $directories = (Get-Content -Raw -Path $path | ConvertFrom-Json) 
 
-    Write-Verbose "Loop through configured directories and apply to data lake $storageAccountName container $containerName in subscription $susbcriptionName"
-    foreach ($d in $directories ) {
+    Write-Verbose "Add depth property for each path to ensure top directory permissions get done first when sort by in loop"
+    Write-Verbose "This means permissions get inherited appropriately"
+    foreach ($d in $directories)
+    {
+        $depth = (($d.Directory).ToCharArray() | Where-Object {$_ -eq '/'} | Measure-Object).Count
+        $d | Add-Member  -MemberType NoteProperty  -Name Depth -Value $depth
+    }
+
+    Write-Verbose "Loop through configured directories in order of depth and apply to data lake $storageAccountName container $containerName in subscription $susbcriptionName"
+    foreach ($d in $directories | Sort-Object -Property Depth ) {
         $directory = $d.directory 
         Write-Verbose "Start directory $directory"
         $metaobject = $d.metadata
@@ -581,18 +639,14 @@ function Set-DataLakeDirectoryAssignment {
         Write-Verbose "With metadata $metadata"
 
         Write-Verbose "Loop and apply permissions for both rdr and wrt groups"
-        foreach ($adgroup in (Get-DataLakeADGroups -directory $directory)) {
+        foreach ($adgroup in (Get-DataLakeConfigADGroups -directory $directory)) {
             $adgroupname = $adgroup.GroupName
             $permissions = $adgroup.LakePermissions
 
-            Write-Verbose "Permissions for AD group $adgroupname are $permissions"
+            Write-Verbose "Confirm group $adgroupname for directory $directory before continuing"
+            Get-DataLakeActiveDirectoryGroup -adgroupname $adgroupname
 
-            Write-Verbose "Get object id of active directory group $adgroupname"
-            $id = (Get-AzADGroup -DisplayName $adgroupname).Id
-            if (!$id) {
-                throw "$adgroupname not found in active directory so cannot continue to create ACL on folder."
-                break
-            }
+            Write-Verbose "Permissions for AD group $adgroupname are $permissions"
 
             Set-DataLakeDirectory -susbcriptionName $susbcriptionName `
                 -StorageAccountName $storageAccountName `
@@ -613,5 +667,6 @@ function Set-DataLakeDirectoryAssignment {
 
 }
 #endregion Set-DataLakeDirectoryAssignment
+
 
 
