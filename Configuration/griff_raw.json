@@ -8,6 +8,22 @@
     }
   },
   {
+    "Directory": "base",
+    "metadata": {
+      "Description": "This is all the base data",
+      "BusinessOwner": "All",
+      "Sensitive": "Y"
+    }
+  },
+  {
+    "Directory": "curated",
+    "metadata": {
+      "Description": "This is all the curated data",
+      "BusinessOwner": "All",
+      "Sensitive": "Y"
+    }
+  },
+  {
     "Directory": "raw/yes",
     "metadata": {
       "Description": "This is all the raw yes data source data",
@@ -19,6 +35,22 @@
     "Directory": "raw/no",
     "metadata": {
       "Description": "This is all the raw no data source data",
+      "BusinessOwner": "No Team",
+      "Sensitive": "N"
+    }
+  },
+  {
+    "Directory": "raw/yes/cata",
+    "metadata": {
+      "Description": "This is all the raw yes category a data source data",
+      "BusinessOwner": "Yes Team",
+      "Sensitive": "Y"
+    }
+  },
+  {
+    "Directory": "raw/yes/catb",
+    "metadata": {
+      "Description":  "This is all the raw yes category b data source data",
       "BusinessOwner": "No Team",
       "Sensitive": "N"
     }
