@@ -178,6 +178,10 @@ function Set-DataLakeContainerACL {
 
     Write-Verbose "Get object id of active directory group $adgroupname"
     $id = (Get-AzADGroup -DisplayName $adgroupname).Id
+    if (!$id) {
+        throw "$adgroupname not found in active directory so cannot continue to create ACL on folder."
+        break
+    }
     
     Write-Verbose "Create ACL Object"
     [Collections.Generic.List[System.Object]]$acl
@@ -371,6 +375,10 @@ function Set-DataLakeDirectoryACL {
 
     Write-Verbose "Get object id of active directory group $adgroupname"
     $id = (Get-AzADGroup -DisplayName $adgroupname).Id
+    if (!$id) {
+        throw "$adgroupname not found in active directory so cannot continue to create ACL on folder."
+        break
+    }
 
     Write-Verbose "Create ACL Object"
     [Collections.Generic.List[System.Object]]$acl
@@ -454,42 +462,23 @@ An example
 https://stackoverflow.com/questions/3740128/pscustomobject-to-hashtable
 https://omgdebugging.com/2019/02/25/convert-a-psobject-to-a-hashtable-in-powershell/
 #>
-function Convert-DataLakePSObjectToHashTable  { 
-    param (
-        [Parameter(ValueFromPipeline)]
-        $InputObject
-    )
-
+function Convert-DataLakePSObjectToHashTable { 
+    param ( 
+        [Parameter(  
+            Position = 0,   
+            Mandatory = $true,   
+            ValueFromPipeline = $true,  
+            ValueFromPipelineByPropertyName = $true  
+        )] [object] $psCustomObject 
+    );
     Write-Verbose "***********************Start Convert-DataLakePSObjectToHashTable******************************************"
 
-    Get-Process
-    {
-        if ($null -eq $InputObject) { return $null }
+    $output = @{}; 
+    $psCustomObject | Get-Member -MemberType *Property | % {
+        $output.($_.name) = $psCustomObject.($_.name); 
+    } 
 
-        if ($InputObject -is [System.Collections.IEnumerable] -and $InputObject -isnot [string])
-        {
-            $collection = @(
-                foreach ($object in $InputObject) { Convert-DataLakePSObjectToHashTable $object }
-            )
-
-            Write-Output -NoEnumerate $collection
-        }
-        elseif ($InputObject -is [psobject])
-        {
-            $hash = @{}
-
-            foreach ($property in $InputObject.PSObject.Properties)
-            {
-                $hash[$property.Name] = Convert-DataLakePSObjectToHashTable $property.Value
-            }
-
-            $hash
-        }
-        else
-        {
-            $InputObject
-        }
-    }
+    return  $output;
 
     Write-Verbose "***********************End Convert-DataLakePSObjectToHashTable******************************************"
 }
@@ -597,6 +586,13 @@ function Set-DataLakeDirectoryAssignment {
             $permissions = $adgroup.LakePermissions
 
             Write-Verbose "Permissions for AD group $adgroupname are $permissions"
+
+            Write-Verbose "Get object id of active directory group $adgroupname"
+            $id = (Get-AzADGroup -DisplayName $adgroupname).Id
+            if (!$id) {
+                throw "$adgroupname not found in active directory so cannot continue to create ACL on folder."
+                break
+            }
 
             Set-DataLakeDirectory -susbcriptionName $susbcriptionName `
                 -StorageAccountName $storageAccountName `

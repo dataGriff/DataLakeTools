@@ -51,7 +51,15 @@
     "Directory": "raw/yes/catb",
     "metadata": {
       "Description":  "This is all the raw yes category b data source data",
-      "BusinessOwner": "No Team",
+      "BusinessOwner": "Yes Team",
+      "Sensitive": "N"
+    }
+  },
+  {
+    "Directory": "raw/yes/broken",
+    "metadata": {
+      "Description":  "This is all the raw yes broken permissions data source data",
+      "BusinessOwner": "Yes Team",
       "Sensitive": "N"
     }
   }

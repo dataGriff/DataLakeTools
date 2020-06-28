@@ -11,4 +11,5 @@ Import-Module ".\Modules\DataLakemanagement"
 Set-DataLakeDirectoryAssignment -subscriptionName $susbcriptionName `
     -storageAccountName $storageAccountName `
     -containerName $containerName `
-    -path $path
+    -path $path 
+    
