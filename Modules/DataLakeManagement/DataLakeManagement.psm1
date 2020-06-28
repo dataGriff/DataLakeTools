@@ -461,7 +461,7 @@ function Convert-DataLakePSObjectToHashTable {
 
     Write-Verbose "***********************Start Convert-DataLakePSObjectToHashTable ******************************************"
 
-    process {
+    get-process {
         if ($null -eq $InputObject) { return $null }
 
         if ($InputObject -is [System.Collections.IEnumerable] -and $InputObject -isnot [string]) {
@@ -488,6 +488,60 @@ function Convert-DataLakePSObjectToHashTable {
     Write-Verbose "***********************End Convert-DataLakePSObjectToHashTable ******************************************"
 }
 #endregion Convert-DataLakePSObjectToHashTable
+
+#region Get-DataLakeADGroups
+<#
+.SYNOPSIS
+Short description
+
+.DESCRIPTION
+Long description
+
+.PARAMETER susbcriptionName
+Parameter description
+
+.EXAMPLE
+An example
+
+.NOTES
+#>
+function Get-DataLakeADGroups {
+    param (
+        [string]$environment,
+        [string]$directory,
+        [string]$description
+    )
+    $dirad = $directory.Replace("/", "")
+    $administrativeUnit = $environment + "DataLake"
+
+    $adgroups = New-Object System.Collections.ArrayList
+
+    foreach ($p in @("rdr", "wrt")) {
+        $adgroup = New-Object -TypeName psobject 
+        $adgroupname = "datalake${dirad}$p"
+        Write-Verbose "Get permissions for AD group $adgroupname"
+        if ($p -eq "rdr") {
+            $permissions = "r-x"
+            $descriptionAD = $description + " This account has read permissions."
+        }
+        if ($p -eq "wrt") {
+            $permissions = "-wx"
+            $descriptionAD = $description + " This account has write permissions."
+        }
+
+        $adgroup | Add-Member  -MemberType NoteProperty  -Name GroupName -Value "datalake${dirad}$p"
+        $adgroup | Add-Member  -MemberType NoteProperty  -Name PermissionType -Value $p
+        $adgroup | Add-Member  -MemberType NoteProperty  -Name LakePermissions -Value $permissions
+        $adgroup | Add-Member  -MemberType NoteProperty  -Name Description -Value $descriptionAD
+        $adgroup | Add-Member  -MemberType NoteProperty  -Name AdministrativeUnit -Value $administrativeUnit
+
+        $adgroups.Add($adgroup) | Out-Null
+    }    
+    return $adgroups
+
+}
+Get-DataLakeADGroups -environment "Test" -directory "raw/yes" -description "la la."
+#endregion Get-DataLakeADGroups
 
 #region Set-DataLakeDirectoryAssignment
 <#
