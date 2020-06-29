@@ -621,6 +621,14 @@ function Set-DataLakeDirectoryAssignment {
     Write-Verbose "Get configuration of directories from json configuration file $path"
     $directories = (Get-Content -Raw -Path $path | ConvertFrom-Json) 
 
+    Write-Verbose "Check for duplicates in configuration JSON and throw error if present"
+    $duplicates = $directories | Group-Object -Property Directory -NoElement | Where-Object {$_.Count -gt 1}
+    if($duplicates)
+    {
+        Write-Host $duplicates.Name
+        throw  "Duplicate directories found in JSON. See output above."
+    }
+
     Write-Verbose "Add depth property for each path to ensure top directory permissions get done first when sort by in loop"
     Write-Verbose "This means permissions get inherited appropriately"
     foreach ($d in $directories)
