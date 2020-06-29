@@ -12,104 +12,116 @@
 #region Connect-DataLakeSubscription 
 <#
 .SYNOPSIS
-Short description
+Connects to an Azure subscription
 
 .DESCRIPTION
-Long description
+Connects to an Azure subscription and sets context to that subscription
 
-.PARAMETER susbcriptionName
-Parameter description
+.PARAMETER subscriptionName
+Azure subscription to connect to and set context to 
 
 .EXAMPLE
-An example
+$subscriptionName = "Visual Studio Enterprise"
+Connect-DataLakeSubscription -subscriptionName $subscriptionName 
 
 .NOTES
-General notes
 #>
 function Connect-DataLakeSubscription {
     param (
-        [string]$susbcriptionName 
+        [Parameter(Mandatory=$true)]
+        [string]$subscriptionName 
 
     )
     Write-Verbose "***********************Start Connect-DataLakeSubscription******************************************"
     $context = Get-AzContext
     if ($context -eq $null) {
-        Connect-AzAccount -Subscription $susbcriptionName | Out-Null
+        Connect-AzAccount -Subscription $subscriptionName | Out-Null
     }
-    Write-Verbose "Connected to subscription $susbcriptionName."
+    Write-Verbose "Connected to subscription $subscriptionName."
     Write-Verbose "***********************End Connect-DataLakeSubscription******************************************"
 }
-##Connect-DataLakeSubscription -susbcriptionName $susbcriptionName
+##Connect-DataLakeSubscription -subscriptionName $subscriptionName
 #endregion Connect-DataLakeSubscription 
 
 #region Connect-DataLakeStorageAccount 
 <#
 .SYNOPSIS
-Short description
+Connects to a data lake storage account
 
 .DESCRIPTION
-Long description
+Connects and sets context to a data lake storage account
 
-.PARAMETER susbcriptionName
-Parameter description
+.PARAMETER subscriptionName
+The name of the azure subscription which contains the data lake. 
 
 .PARAMETER storageAccountName
-Parameter description
+The name of the data lake storage account.
 
 .EXAMPLE
-An example
+$subscriptionName = "Visual Studio Enterprise"
+$storageAccountName = "myuniquestorageaccount"
+Connect-DataLakeStorageAccount  -subscriptionName $subscriptionName `
+                                -storageAccountName $storageAccountName
 
 .NOTES
-General notes
 #>
 function Connect-DataLakeStorageAccount { 
     param(
-        [string]$susbcriptionName ,
+        [Parameter(Mandatory=$true)]
+        [string]$subscriptionName ,
+        [Parameter(Mandatory=$true)]
         [string]$storageAccountName
     
     )
     Write-Verbose "***********************Start Connect-DataLakeStorageAccount******************************************"
-    Connect-DataLakeSubscription -susbcriptionName susbcriptionName
+    Connect-DataLakeSubscription -subscriptionName subscriptionName
     $ctx = New-AzStorageContext -StorageAccountName $storageAccountName -UseConnectedAccount
     Write-Verbose "Connected to storage account $storageAccountName."
     return $ctx
     Write-Verbose "***********************End Connect-DataLakeStorageAccount******************************************"
 }
-##Connect-DataLakeStorageAccount -susbcriptionName $susbcriptionName -StorageAccountName $storageAccountName
+##Connect-DataLakeStorageAccount -subscriptionName $subscriptionName -StorageAccountName $storageAccountName
 #endregion Connect-DataLakeStorageAccount 
 
 #region Set-DataLakeContainer 
 <#
 .SYNOPSIS
-Short description
+Creates or updates a data lake container
 
 .DESCRIPTION
-Long description
+Creates a data lake container if it does not exist or updates it if already does
 
-.PARAMETER susbcriptionName
-Parameter description
+.PARAMETER subscriptionName
+The name of the azure subscription which contains the data lake. 
 
 .PARAMETER storageAccountName
-Parameter description
+The name of the data lake storage account.
 
 .PARAMETER containerName
-Parameter description
+The name of the container for the data lake filesystem.
 
 .EXAMPLE
-An example
+$subscriptionName = "Visual Studio Enterprise"
+$storageAccountName = "myuniquestorageaccount"
+$containerName = "mytestlake"
+Set-DataLakeContainer -subscriptionName $subscriptionName `
+                      -storageAccountName $storageAccountName `
+                      -containerName $containerName
 
 .NOTES
-General notes
 #>
 function Set-DataLakeContainer { 
     param(
-        [string]$susbcriptionName ,
+        [Parameter(Mandatory=$true)]
+        [string]$subscriptionName ,
+        [Parameter(Mandatory=$true)]
         [string]$storageAccountName,
+        [Parameter(Mandatory=$true)]
         [string]$containerName    
     )
     Write-Verbose "***********************Start Set-DataLakeContainer******************************************"
-    Connect-DataLakeSubscription -susbcriptionName $susbcriptionName
-    $ctx = Connect-DataLakeStorageAccount -susbcriptionName $susbcriptionName `
+    Connect-DataLakeSubscription -subscriptionName $subscriptionName
+    $ctx = Connect-DataLakeStorageAccount -subscriptionName $subscriptionName `
         -StorageAccountName $storageAccountName
 
     Write-Verbose "If storage account container $containerName does not exists create..."
@@ -132,45 +144,58 @@ function Set-DataLakeContainer {
 #region Set-DataLakeContainerACL
 <#
 .SYNOPSIS
-Short description
+Applies ACL permissions to a data lake container
 
 .DESCRIPTION
-Long description
+Applies ACL permissions to a data lake container for the active directory group and stated permissions supplied
 
-.PARAMETER susbcriptionName
-Parameter description
+.PARAMETER subscriptionName
+The name of the azure subscription which contains the data lake. 
 
 .PARAMETER storageAccountName
-Parameter description
+The name of the data lake storage account.
 
 .PARAMETER containerName
-Parameter description
+The name of the container for the data lake filesystem.
 
 .PARAMETER adgroupname
-Parameter description
+The name of the active directory group for ACLs to be applied for
 
 .PARAMETER permissions
-Parameter description
+The permissions required for the active directory group on the ACL
 
 .EXAMPLE
-An example
+$subscriptionName = "Visual Studio Enterprise"
+$storageAccountName = "myuniquestorageaccount"
+$containerName = "mytestlake"
+$adgroupname = "myadgroup"
+$permissions =  "--x"
+Set-DataLakeContainerACL -subscriptionName $subscriptionName `
+    -storageAccountName $storageAccountName `
+    -containerName $containerName `
+    -adgroupname $adgroupname `
+    -permissions $permissions 
 
 .NOTES
-General notes
 #>
 function Set-DataLakeContainerACL { 
     param(
-        [string]$susbcriptionName ,
+        [Parameter(Mandatory=$true)]
+        [string]$subscriptionName ,
+        [Parameter(Mandatory=$true)]
         [string]$storageAccountName,
+        [Parameter(Mandatory=$true)]
         [string]$containerName ,
+        [Parameter(Mandatory=$true)]
         [string]$adgroupname   ,
-        [string]$permissions = "--x"
+        [Parameter(Mandatory=$true)]
+        [string]$permissions
     )
 
     Write-Verbose "***********************Start Set-DataLakeContainerACL******************************************"
 
-    Connect-DataLakeSubscription -susbcriptionName $susbcriptionName
-    $ctx = Connect-DataLakeStorageAccount -susbcriptionName $susbcriptionName `
+    Connect-DataLakeSubscription -subscriptionName $subscriptionName
+    $ctx = Connect-DataLakeStorageAccount -subscriptionName $subscriptionName `
         -StorageAccountName $storageAccountName
 
     Write-Verbose "Get object id of active directory group $adgroupname"
@@ -198,42 +223,62 @@ function Set-DataLakeContainerACL {
 #region Set-DataLakeDirectory 
 <#
 .SYNOPSIS
-Short description
+Creates or updates a data lake directory
 
 .DESCRIPTION
-Long description
+Creates a data lake directory if it does not exist and applies the metadata supplied or updates if it does exist.
 
-.PARAMETER susbcriptionName
-Parameter description
+.PARAMETER subscriptionName
+The name of the azure subscription which contains the data lake. 
 
 .PARAMETER storageAccountName
-Parameter description
+The name of the data lake storage account.
 
 .PARAMETER containerName
-Parameter description
+The name of the container for the data lake filesystem.
 
 .PARAMETER dirname
-Parameter description
+The data lake directory to be created
 
 .PARAMETER metadata
-Parameter description
+The metadata to be appleid to the data lake directory in a hash table 
 
 .EXAMPLE
-An example
+$subscriptionName = "Visual Studio Enterprise"
+$storageAccountName = "myuniquestorageaccount"
+$containerName = "mytestlake"
+$dirname = "raw\categorya"
+$metadata =  @{"Business Owner"="Marketing";"Sensitive"="Yes"}
+Set-DataLakeDirectory -subscriptionName $subscriptionName `
+    -storageAccountName $storageAccountName `
+    -containerName $containerName `
+    -dirname $dirname `
+    -metadata $metadata 
 
 .NOTES
 General notes
 #>
 function Set-DataLakeDirectory { 
     param(
-        [string]$susbcriptionName ,
+        [Parameter(Mandatory=$true)]
+        [string]$subscriptionName ,
+        [Parameter(Mandatory=$true)]
         [string]$storageAccountName,
+        [Parameter(Mandatory=$true)]
         [string]$containerName    ,
+        [Parameter(Mandatory=$true)]
         [string]$dirname ,
+        [Parameter(Mandatory=$true)]
         [hashtable]$metadata
     )
 
     Write-Verbose "***********************Start Set-DataLakeDirectory******************************************"
+
+    Write-Verbose "Check formatting of directory and throw error if incorrect"
+    if ($dirname -like "*\*")
+    {
+        throw  "Directory $dirname in wrong format. Should use forward slashes. See output above."
+    }
 
     Write-Verbose "Need to confirm read and write accounts exist for directory $dirname before continuing"
     $adgroups = @(Get-DataLakeConfigADGroups -directory $dirname).GroupName
@@ -242,8 +287,8 @@ function Set-DataLakeDirectory {
         Get-DataLakeActiveDirectoryGroup $a
     }
 
-    Connect-DataLakeSubscription -susbcriptionName $susbcriptionName
-    $ctx = Connect-DataLakeStorageAccount -susbcriptionName $susbcriptionName `
+    Connect-DataLakeSubscription -subscriptionName $subscriptionName
+    $ctx = Connect-DataLakeStorageAccount -subscriptionName $subscriptionName `
         -StorageAccountName $storageAccountName
 
     Write-Verbose "Attempt to get directory $dirname in container $containerName for storage account $storageAccountName"
@@ -275,22 +320,23 @@ function Set-DataLakeDirectory {
 #region Get-DataLakeDirectoryPaths 
 <#
 .SYNOPSIS
-Short description
+Splits a directory path into each incrementing folder
 
 .DESCRIPTION
-Long description
+Splits a directory path into each incrementing folder so as to get every route to the final directory folder. This is useful for ensuring execute is applied to every folder up to the destination. 
 
 .PARAMETER dirname
-Parameter description
+The data lake directory to be created
 
 .EXAMPLE
-An example
+$dirname = "raw/stuff/categorya"
+Get-DataLakeDirectoryPaths -dirname $dirname
 
 .NOTES
-General notes
 #>
 function Get-DataLakeDirectoryPaths { 
     param(
+        [Parameter(Mandatory=$true)]
         [string]$dirname
     )
 
@@ -328,40 +374,58 @@ Short description
 .DESCRIPTION
 Long description
 
-.PARAMETER susbcriptionName
-Parameter description
+.PARAMETER subscriptionName
+The name of the azure subscription which contains the data lake. 
 
 .PARAMETER storageAccountName
-Parameter description
+The name of the data lake storage account.
 
 .PARAMETER containerName
-Parameter description
+The name of the container for the data lake filesystem.
 
 .PARAMETER dirname
-Parameter description
+The data lake directory to be created
 
 .PARAMETER adgroupname
-Parameter description
+The name of the active directory group for ACLs to be applied for
 
 .PARAMETER permissions
-Parameter description
+The permissions required for the active directory group on the ACL
 
 .PARAMETER recursePermissions
-Parameter description
+Whether to recursively apply ACLs to all child items (currently WIP!)
 
 .EXAMPLE
-An example
+$subscriptionName = "Visual Studio Enterprise"
+$storageAccountName = "myuniquestorageaccount"
+$containerName = "mytestlake"
+$dirname = "raw/categorya"
+$adgroupname = "myadgroup"
+$permissions =  "r-x"
+
+Set-DataLakeDirectoryACL -subscriptionName $subscriptionName `
+    -StorageAccountName $storageAccountName `
+    -containerName $containerName `
+    -dirname   $directory `
+    -adgroupname $adgroupname `
+    -permissions $permissions 
 
 .NOTES
 General notes
 #>
 function Set-DataLakeDirectoryACL { 
     param(
-        [string]$susbcriptionName ,
+        [Parameter(Mandatory=$true)]
+        [string]$subscriptionName ,
+        [Parameter(Mandatory=$true)]
         [string]$storageAccountName,
+        [Parameter(Mandatory=$true)]
         [string]$containerName    ,
+        [Parameter(Mandatory=$true)]
         [string]$dirname,
+        [Parameter(Mandatory=$true)]
         [string]$adgroupname,
+        [Parameter(Mandatory=$true)]
         [string]$permissions,
         [boolean]$recursePermissions = $false
 
@@ -369,8 +433,8 @@ function Set-DataLakeDirectoryACL {
     
     Write-Verbose "***********************Start Set-DataLakeDirectoryACL******************************************"
 
-    Connect-DataLakeSubscription -susbcriptionName $susbcriptionName
-    $ctx = Connect-DataLakeStorageAccount -susbcriptionName $susbcriptionName `
+    Connect-DataLakeSubscription -subscriptionName $subscriptionName
+    $ctx = Connect-DataLakeStorageAccount -subscriptionName $subscriptionName `
         -StorageAccountName $storageAccountName
 
     Write-Verbose "Get object id of active directory group $adgroupname"
@@ -394,7 +458,7 @@ function Set-DataLakeDirectoryACL {
         -Acl $acl
 
     Write-Verbose "Give execute permissions container for $adgroupname"
-    Set-DataLakeContainerACL -susbcriptionName $susbcriptionName `
+    Set-DataLakeContainerACL -subscriptionName $subscriptionName `
         -storageAccountName $storageAccountName `
         -containerName $containerName `
         -adgroupname $adgroupname `
@@ -443,13 +507,13 @@ function Set-DataLakeDirectoryACL {
 #region Convert-DataLakePSObjectToHashTable
 <#
 .SYNOPSIS
-Short description
+Converts a powershell object into a hash table
 
 .DESCRIPTION
-Long description
+Converts a powershell object into a hash table
 
 .PARAMETER InputObject
-Parameter description
+The powershell object to convert into a hash table
 
 .EXAMPLE
 An example
@@ -483,31 +547,35 @@ function Convert-DataLakePSObjectToHashTable {
 #region Get-DataLakeConfigADGroups
 <#
 .SYNOPSIS
-Short description
+Generates standard Active Directory group objects for directory supplied
 
 .DESCRIPTION
-Long description
+Generates standard reader (rdr) and writer (wrt) Active Directory group objects for directory supplied and returns them as an array of objects
 
 .PARAMETER environment
-Parameter description
+This is the environment for which the active directory groups will be created for. e.g. TEST, PROD, DEV or whatever you use. This will prefix the name of the active directory group. If blank there will be no prefix to the active directory group names.
 
 .PARAMETER directory
-Parameter description
+The data lake directory path. 
 
 .PARAMETER description
-Parameter description
+The description of the directory path. This will be appended with a description of whether can read or write directory depending on active directory group being created. 
 
 .EXAMPLE
-An example
+$environment = "test"
+$directory = "raw/cata"
+Get-DataLakeConfigADGroups  -directory $directory `
+                            -environment $environment
 
 .NOTES
 General notes
 #>
 function Get-DataLakeConfigADGroups {
     param (
-        [string]$environment,
+        [string]$environment = "",
+        [Parameter(Mandatory=$true)]
         [string]$directory,
-        [string]$description
+        [string]$description = ""
     )
 
     Write-Verbose "***********************Start Get-DataLakeConfigADGroups******************************************"
@@ -519,7 +587,7 @@ function Get-DataLakeConfigADGroups {
 
     foreach ($p in @("rdr", "wrt")) {
         $adgroup = New-Object -TypeName psobject 
-        $adgroupname = "datalake${dirad}$p"
+        $adgroupname = "${environment}datalake${dirad}$p"
         Write-Verbose "Configure permissions for AD group object $adgroupname"
         if ($p -eq "rdr") {
             $permissions = "r-x"
@@ -542,28 +610,28 @@ function Get-DataLakeConfigADGroups {
     
     Write-Verbose "***********************End Get-DataLakeConfigADGroups******************************************"
 }
-Get-DataLakeConfigADGroups -environment "Test" -directory "raw/yes" -description "la la."
 #endregion Get-DataLakeConfigADGroups
 
 #region Get-DataLakeActiveDirectoryGroup
 <#
 .SYNOPSIS
-Short description
+Gets an active directory group id
 
 .DESCRIPTION
-Long description
+Gets an active directory group id and errors if does not exist so acts as a check
 
 .PARAMETER adgroupname
-Parameter description
+The name of the active directory group
 
 .EXAMPLE
-An example
+$adgroupname = "MyTestGroup"
+Get-DataLakeActiveDirectoryGroup -adgroupname $adgroupname 
 
 .NOTES
-General notes
 #>
 function Get-DataLakeActiveDirectoryGroup {
     param (
+        [Parameter(Mandatory=$true)]
         [string]$adgroupname
     )
     Write-Verbose "***********************Start Get-DataLakeActiveDirectoryGroup******************************************"
@@ -584,42 +652,62 @@ function Get-DataLakeActiveDirectoryGroup {
 #region Set-DataLakeDirectoryAssignment
 <#
 .SYNOPSIS
-Short description
+Deploys data lake folders, metadata and permissions from config file
 
 .DESCRIPTION
-Long description
+Reads configuration content from JSON file that includes metadata around data lake folders. It checks to see if there are any duplicates as data lake file systems are not case sensitive so this prevents confusion. The depth of each directory from the config file is then esablished so that folders and their resultant permissions are generated from the top down and inherited appropriately. A loop then begins and each directory has its active directory group generated based on standards, the process expects one reader (rdr) and one writer (wrt) group. If these groups are not present the process will fail as folders should not be created until active directory groups are in place. If all the checks have then succeeded the folder is created with appropriate metadata along with the appropriate ACLs for the activity groups.
 
-.PARAMETER susbcriptionName
-Parameter description
+.PARAMETER environment
+This is the environment for which the active directory groups will be created for. e.g. TEST, PROD, DEV or whatever you use. This will prefix the name of the active directory group. If blank there will be no prefix to the active directory group names.
+
+.PARAMETER subscriptionName
+The name of the azure subscription which contains the data lake. 
 
 .PARAMETER storageAccountName
-Parameter description
+The name of the data lake storage account.
 
 .PARAMETER containerName
-Parameter description
+The name of the container for the data lake filesystem.
 
-.PARAMETER path
-Parameter description
+.PARAMETER configFile
+The path to the config file containins all the metadata. 
 
 .EXAMPLE
-An example
+$VerbosePreference = "continue"
+$environment = "" 
+$subscriptionName = "Visual Studio Enterprise" 
+$storageAccountName = "griffvnetlk2"
+$containerName = "mytestlake"
+$configFile = "configuration\griff_raw.json"
+
+Set-DataLakeDirectoryAssignment -environment $environment `
+    -subscriptionName $subscriptionName `
+    -storageAccountName $storageAccountName `
+    -containerName $containerName `
+    -configFile $configFile 
 
 .NOTES
-General notes
+Data lakes folder structures are case insensitive so beware of duplication! This code handles it but worthwhile creating pester tests to monitor. 
+Data lake folders should be deployed in order of directory depth so that each folder created inherits from above. This is now built-in. 
 #>
 function Set-DataLakeDirectoryAssignment {
     param (
-        [string]$susbcriptionName,
+        [string]$environment,
+        [Parameter(Mandatory=$true)]
+        [string]$subscriptionName,
+        [Parameter(Mandatory=$true)]
         [string]$storageAccountName,
+        [Parameter(Mandatory=$true)]
         [string]$containerName,
-        [string]$path
+        [Parameter(Mandatory=$true)]
+        [string]$configFile
     )
     $ErrorActionPreference = "Stop" ##leave this as calls so many nested things want to maintain this
 
     Write-Verbose "***********************Start Set-DataLakeDirectoryAssignment******************************************"
 
-    Write-Verbose "Get configuration of directories from json configuration file $path"
-    $directories = (Get-Content -Raw -Path $path | ConvertFrom-Json) 
+    Write-Verbose "Get configuration of directories from json configuration file $configFile"
+    $directories = (Get-Content -Raw -Path $configFile | ConvertFrom-Json) 
 
     Write-Verbose "Check for duplicates in configuration JSON and throw error if present"
     $duplicates = $directories | Group-Object -Property Directory -NoElement | Where-Object {$_.Count -gt 1}
@@ -637,7 +725,7 @@ function Set-DataLakeDirectoryAssignment {
         $d | Add-Member  -MemberType NoteProperty  -Name Depth -Value $depth
     }
 
-    Write-Verbose "Loop through configured directories in order of depth and apply to data lake $storageAccountName container $containerName in subscription $susbcriptionName"
+    Write-Verbose "Loop through configured directories in order of depth and apply to data lake $storageAccountName container $containerName in subscription $subscriptionName"
     foreach ($d in $directories | Sort-Object -Property Depth ) {
         $directory = $d.directory 
         Write-Verbose "Start directory $directory"
@@ -647,7 +735,7 @@ function Set-DataLakeDirectoryAssignment {
         Write-Verbose "With metadata $metadata"
 
         Write-Verbose "Loop and apply permissions for both rdr and wrt groups"
-        foreach ($adgroup in (Get-DataLakeConfigADGroups -directory $directory)) {
+        foreach ($adgroup in (Get-DataLakeConfigADGroups -environment $environment -directory $directory)) {
             $adgroupname = $adgroup.GroupName
             $permissions = $adgroup.LakePermissions
 
@@ -656,13 +744,13 @@ function Set-DataLakeDirectoryAssignment {
 
             Write-Verbose "Permissions for AD group $adgroupname are $permissions"
 
-            Set-DataLakeDirectory -susbcriptionName $susbcriptionName `
+            Set-DataLakeDirectory -subscriptionName $subscriptionName `
                 -StorageAccountName $storageAccountName `
                 -containerName $containerName `
                 -dirname  $directory `
                 -metadata $metadata
 
-            Set-DataLakeDirectoryACL -susbcriptionName $susbcriptionName `
+            Set-DataLakeDirectoryACL -subscriptionName $subscriptionName `
                 -StorageAccountName $storageAccountName `
                 -containerName $containerName `
                 -dirname   $directory `

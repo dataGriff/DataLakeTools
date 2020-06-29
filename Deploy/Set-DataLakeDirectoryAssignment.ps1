@@ -1,16 +1,17 @@
 clear-host
 $VerbosePreference = "continue"
-##$ErrorActionPreference = "Stop"
-$susbcriptionName = "Visual Studio Enterprise" 
+$environment = "" 
+$subscriptionName = "Visual Studio Enterprise" 
 $storageAccountName = "griffvnetlk2"
 $containerName = "mytestlake"
-$path = "configuration\griff_raw.json"
+$configFile = "configuration\griff_raw.json"
 
 ##Remove-Module DataLakemanagement
 Import-Module ".\Modules\DataLakemanagement"
 
-Set-DataLakeDirectoryAssignment -subscriptionName $susbcriptionName `
+Set-DataLakeDirectoryAssignment -environment $environment `
+    -subscriptionName $subscriptionName `
     -storageAccountName $storageAccountName `
     -containerName $containerName `
-    -path $path 
+    -configFile $configFile 
     
